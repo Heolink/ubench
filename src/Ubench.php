@@ -30,6 +30,10 @@ class Ubench
 
     protected $memory_usage;
 
+    protected $resource_usage;
+
+    protected $cpu;
+
     /**
      * Sets start microtime
      *
@@ -38,6 +42,8 @@ class Ubench
     public function start()
     {
         $this->start_time = microtime(true);
+        $dat = getrusage();
+        $this->resource_usage = $dat["ru_utime.tv_sec"]*1e6+$dat["ru_utime.tv_usec"];
     }
 
     /**
@@ -49,6 +55,28 @@ class Ubench
     {
         $this->end_time = microtime(true);
         $this->memory_usage = memory_get_usage(true);
+        $dat = getrusage();
+
+        $dat["ru_utime.tv_usec"] = ($dat["ru_utime.tv_sec"]*1e6 + $dat["ru_utime.tv_usec"]) - $this->resource_usage;
+        $time = (microtime(true) - $this->start_time) * 1000000;
+
+        // cpu per request
+        if($time > 0) {
+            $cpu = sprintf("%01.2f", ($dat["ru_utime.tv_usec"] / $time) * 100);
+        } else {
+            $cpu = '0.00';
+        }
+
+        $this->cpu = $cpu;
+    }
+
+    /**
+     * Return CPU usage
+     * @return float
+     */
+    public function getCpu()
+    {
+        return $this->cpu;
     }
 
     /**
